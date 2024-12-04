@@ -3,6 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 
+# Set page configuration
+st.set_page_config(page_title="Salary Wise", layout="centered", page_icon=':moneybag:')
+
 # App Title
 st.title("Personal Finance Calculator")
 st.subheader("Calculate your In-Hand Salary with Visualizations and Configurable Options")
