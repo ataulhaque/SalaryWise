@@ -5,13 +5,18 @@ import io
 
 # Set page configuration
 st.set_page_config(page_title="Salary Wise", layout="centered", page_icon=':moneybag:')
+st.info("To configure the salary components, expand the sidebar here :point_left:")
 
 # App Title
 st.title("Personal Finance Calculator")
-st.subheader("Calculate your In-Hand Salary with Visualizations and Configurable Options")
+st.subheader("Calculate your In-Hand Salary")
 
 # Input for CTC
 ctc = st.number_input("Enter your Annual CTC (₹):", min_value=0, step=1000)
+raise_pct = st.number_input("Enter Appraisal Raise Percentage (if any)(%):", min_value=0.0, step=0.1)
+
+# Calculate effective CTC based on raise percentage
+effective_ctc = ctc + (ctc * (raise_pct / 100)) if raise_pct > 0 else ctc
 
 # Sidebar: User-editable Salary Components
 st.sidebar.header("Adjust Salary Component Percentages")
@@ -19,6 +24,8 @@ basic_salary_pct = st.sidebar.slider("Basic Salary (%)", min_value=20.0, max_val
 hra_pct = st.sidebar.slider("HRA (% of Basic)", min_value=30.0, max_value=60.0, value=50.0, step=0.5)
 pf_pct = st.sidebar.slider("Provident Fund (PF) (%)", min_value=10.0, max_value=20.0, value=12.0, step=0.5)
 gratuity_pct = st.sidebar.slider("Gratuity (%)", min_value=4.0, max_value=5.0, value=4.81, step=0.01)
+voluntary_pf_pct = st.sidebar.slider("Voluntary PF (% of Basic)", min_value=0.0, max_value=100.0, value=0.0, step=0.5)
+nps_pct = st.sidebar.slider("NPS (% of Basic)", min_value=0.0, max_value=10.0, value=0.0, step=0.5)
 
 # Save Configuration Option
 if st.sidebar.button("Save Configuration"):
@@ -28,6 +35,8 @@ if st.sidebar.button("Save Configuration"):
         "HRA (%)": hra_pct,
         "Provident Fund (PF) (%)": pf_pct,
         "Gratuity (%)": gratuity_pct,
+        "Voluntary PF (%)": voluntary_pf_pct,
+        "NPS (%)": nps_pct,
     }
     pd.DataFrame([config]).to_csv("saved_config.csv", index=False)
     st.sidebar.success("Configuration Saved!")
@@ -41,6 +50,8 @@ if st.sidebar.button("Load Configuration"):
         hra_pct = saved_config["HRA (%)"]
         pf_pct = saved_config["Provident Fund (PF) (%)"]
         gratuity_pct = saved_config["Gratuity (%)"]
+        voluntary_pf_pct = saved_config["Voluntary PF (%)"]
+        nps_pct = saved_config["NPS (%)"]
         st.sidebar.success("Configuration Loaded!")
     except FileNotFoundError:
         st.sidebar.error("No configuration file found!")
@@ -78,12 +89,17 @@ def calculate_salary_breakup(ctc, basic_pct, hra_pct, pf_pct, gratuity_pct):
     }
 
 # Calculate salary components
-if ctc > 0:
-    salary_breakup = calculate_salary_breakup(ctc, basic_salary_pct, hra_pct, pf_pct, gratuity_pct)
+if effective_ctc > 0:
+    salary_breakup = calculate_salary_breakup(effective_ctc, basic_salary_pct, hra_pct, pf_pct, gratuity_pct)
     
     # Display salary breakup
     st.subheader("Salary Breakup")
-    df = pd.DataFrame(salary_breakup.items(), columns=["Component", "Amount (₹)"])
+    monthly_breakup = {key: round(value / 12, 2) for key, value in salary_breakup.items()}  # Calculate monthly amounts
+    df = pd.DataFrame({
+        "Component": salary_breakup.keys(),
+        "Amount Annual (₹)": salary_breakup.values(),
+        "Amount Monthly (₹)": monthly_breakup.values(),  # New column for monthly amounts
+    })
     st.table(df)
 
     # Pie Chart for Salary Components
@@ -94,14 +110,14 @@ if ctc > 0:
         labels=salary_breakup.keys(),
         autopct="%1.1f%%",
         startangle=140,
-        colors=["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854"],
+        colors=["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#264b19"],
     )
     ax.axis("equal")  # Equal aspect ratio ensures the pie is a circle.
     st.pyplot(fig)
 
     # Tax Calculation and In-Hand Salary
-    tax = calculate_taxable_income(ctc)
-    in_hand_salary = ctc - tax - salary_breakup["Provident Fund (PF)"] - salary_breakup["Gratuity"]
+    tax = calculate_taxable_income(effective_ctc)
+    in_hand_salary = effective_ctc - tax - salary_breakup["Provident Fund (PF)"] - salary_breakup["Gratuity"]
 
     st.subheader("Estimated In-Hand Salary")
     st.write(f"**In-Hand Annual Salary (₹):** {round(in_hand_salary, 2)}")
@@ -122,3 +138,4 @@ if ctc > 0:
         file_name="salary_breakup_report.csv",
         mime="text/csv",
     )
+st.info("This app is designed to help you calculate your in-hand salary based on your annual CTC and various salary components. It also allows you to adjust the percentages of these components to see how they affect your take-home pay. You can also enter your appraisal raise percentage to see how it affects your in-hand salary. if you have any suggestions or feedback, please let me know.")
