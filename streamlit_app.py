@@ -67,12 +67,14 @@ def calculate_salary_breakup(ctc, basic_pct, hra_pct, pf_pct, gratuity_pct):
     pf = basic_salary * (pf_pct / 100)
     gratuity = basic_salary * (gratuity_pct / 100)
     special_allowance = ctc - (basic_salary + hra + pf + gratuity)
+    tds = calculate_taxable_income(ctc)
     return {
         "Basic Salary": round(basic_salary, 2),
         "HRA": round(hra, 2),
         "Special Allowance": round(special_allowance, 2),
         "Provident Fund (PF)": round(pf, 2),
         "Gratuity": round(gratuity, 2),
+        "Tax Deducted": round(tds, 2),
     }
 
 # Calculate salary components
@@ -107,8 +109,8 @@ if ctc > 0:
 
     # Prepare Report CSV for Download
     report_data = {
-        "Component": list(salary_breakup.keys()) + ["Tax Deducted", "In-Hand Annual Salary", "In-Hand Monthly Salary"],
-        "Amount (₹)": list(salary_breakup.values()) + [tax, round(in_hand_salary, 2), round(in_hand_salary / 12, 2)],
+        "Component": list(salary_breakup.keys()) + ["In-Hand Annual Salary", "In-Hand Monthly Salary"],
+        "Amount (₹)": list(salary_breakup.values()) + [round(in_hand_salary, 2), round(in_hand_salary / 12, 2)],
     }
     report_df = pd.DataFrame(report_data)
     csv = report_df.to_csv(index=False)
