@@ -5,7 +5,7 @@ import io
 
 # Set page configuration
 st.set_page_config(page_title="Salary Wise", layout="centered", page_icon=':moneybag:')
-st.info("To configure the salary components, expand the sidebar here :point_left:")
+st.info("Configure Salary Components :point_left:")
 
 # App Title
 st.title("Personal Finance Calculator")
@@ -138,4 +138,13 @@ if effective_ctc > 0:
         file_name="salary_breakup_report.csv",
         mime="text/csv",
     )
+
+
+st.info("Connect us on 'WhatsApp Chat' for any feedback or consultation.")
+st.markdown("""
+        <a aria-label="Chat on WhatsApp" href="https://wa.me/917205467646?text=Hi%2C%20I%20need%20to%20consult%20regarding%20my%20Salary%20related%20queries">
+        <img alt="Chat on WhatsApp" src="https://image.pngaaa.com/326/2798326-middle.png" width="150" height="auto"/>
+        </a><br/><br/>
+        """, unsafe_allow_html=True)
+st.write("[Buy me a Coffee :coffee: ](https://buymeacoffee.com/ataulhaque)")
 st.info("This app is designed to help you calculate your in-hand salary based on your annual CTC and various salary components. It also allows you to adjust the percentages of these components to see how they affect your take-home pay. You can also enter your appraisal raise percentage to see how it affects your in-hand salary. if you have any suggestions or feedback, please let me know.")
