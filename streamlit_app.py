@@ -57,6 +57,7 @@ if st.sidebar.button("Load Configuration"):
         st.sidebar.error("No configuration file found!")
 
 # Function to calculate taxable income based on the New Tax Regime
+std_deduction = 75000
 def calculate_taxable_income(ctc):
     if ctc <= 300000:
         return 0
@@ -72,25 +73,39 @@ def calculate_taxable_income(ctc):
         return 140000 + (ctc - 1500000) * 0.30
 
 # Function to calculate salary components
-def calculate_salary_breakup(ctc, basic_pct, hra_pct, pf_pct, gratuity_pct):
+def calculate_salary_breakup(ctc, basic_pct, hra_pct, pf_pct, gratuity_pct, voluntary_pf_pct, nps_pct):
     basic_salary = ctc * (basic_pct / 100)
     hra = basic_salary * (hra_pct / 100)
-    pf = basic_salary * (pf_pct / 100)
+    pf = basic_salary * (pf_pct / 100) 
+    if pf < 1800:
+        pf = 1800
     gratuity = basic_salary * (gratuity_pct / 100)
-    special_allowance = ctc - (basic_salary + hra + pf + gratuity)
-    tds = calculate_taxable_income(ctc)
+    nps = basic_salary * (nps_pct / 100)
+    taxable_salary = ctc - nps - std_deduction
+    tds = calculate_taxable_income(taxable_salary)
+    vpf = basic_salary * (voluntary_pf_pct / 100)
+    
+    # Apply NPS Tax Benefits
+    # Maximum deduction allowed under Section 80CCD(1B) for NPS is Rs. 50,000
+    #nps_tax_deduction = min(nps, 50000)
+    # Calculate Special Allowance
+    special_allowance = ctc - (basic_salary + hra + pf + gratuity + vpf + nps)
+    tds -= nps  # Reduce taxable income by NPS deduction
+    
     return {
         "Basic Salary": round(basic_salary, 2),
-        "HRA": round(hra, 2),
         "Special Allowance": round(special_allowance, 2),
-        "Provident Fund (PF)": round(pf, 2),
+        "HRA": round(hra, 2),
         "Gratuity": round(gratuity, 2),
+        "Provident Fund (PF)": round(pf, 2),
+        "Voluntary Provident Fund (VPF)": round(vpf, 2),
+        "National Pension Scheme (NPS)": round(nps, 2),
         "Tax Deducted": round(tds, 2),
     }
 
 # Calculate salary components
 if effective_ctc > 0:
-    salary_breakup = calculate_salary_breakup(effective_ctc, basic_salary_pct, hra_pct, pf_pct, gratuity_pct)
+    salary_breakup = calculate_salary_breakup(effective_ctc, basic_salary_pct, hra_pct, pf_pct, gratuity_pct, voluntary_pf_pct, nps_pct)
     
     # Display salary breakup
     st.subheader("Salary Breakup")
@@ -105,19 +120,24 @@ if effective_ctc > 0:
     # Pie Chart for Salary Components
     st.subheader("Salary Components Distribution")
     fig, ax = plt.subplots()
+    
+    # Filter out zero components for the pie chart
+    non_zero_components = {key: value for key, value in salary_breakup.items() if value > 0}
+    
     ax.pie(
-        salary_breakup.values(),
-        labels=salary_breakup.keys(),
+        non_zero_components.values(),
+        labels=non_zero_components.keys(),
         autopct="%1.1f%%",
         startangle=140,
-        colors=["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#264b19"],
+        colors=["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#264b19", "#00FFFF", "#808000"],
     )
     ax.axis("equal")  # Equal aspect ratio ensures the pie is a circle.
     st.pyplot(fig)
 
     # Tax Calculation and In-Hand Salary
+    effective_ctc -= (std_deduction + salary_breakup["National Pension Scheme (NPS)"])
     tax = calculate_taxable_income(effective_ctc)
-    in_hand_salary = effective_ctc - tax - salary_breakup["Provident Fund (PF)"] - salary_breakup["Gratuity"]
+    in_hand_salary = effective_ctc - tax - salary_breakup["Provident Fund (PF)"] - salary_breakup["Gratuity"] - salary_breakup["Voluntary Provident Fund (VPF)"]
 
     st.subheader("Estimated In-Hand Salary")
     st.write(f"**In-Hand Annual Salary (₹):** {round(in_hand_salary, 2)}")
